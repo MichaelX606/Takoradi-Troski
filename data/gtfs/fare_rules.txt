@@ -1,0 +1,6 @@
+fare_id,route_id,origin_id,destination_id
+FR_KWES_FLAT,RT_MKT_KWES,,,
+FR_SEK_FLAT,RT_MKT_SEK,,,
+FR_KOJO_FLAT,RT_MKT_KOJO,,,
+FR_EFFIA_FLAT,RT_MKT_EFFIA,,,
+FR_ANAJI_FLAT,RT_MKT_ANAJI,,,

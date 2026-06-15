@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang
+GPRTU_TACO,"Takoradi Trotro Network","https://github.com/yourusername/takoradi-transit","Africa/Accra",en

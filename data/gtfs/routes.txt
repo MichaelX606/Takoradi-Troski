@@ -1,0 +1,6 @@
+route_id,agency_id,route_short_name,route_long_name,route_type
+RT_MKT_KWES,GPRTU_TACO,"MKT-KWES","Market Circle to Kwesimintsim Terminal",3
+RT_MKT_SEK,GPRTU_TACO,"MKT-SEK","Market Circle to Sekondi Terminal",3
+RT_MKT_KOJO,GPRTU_TACO,"MKT-KOJO","Market Circle to Kojokrom Terminal",3
+RT_MKT_EFFIA,GPRTU_TACO,"MKT-EFFIA","Market Circle to Effiakuma Station",3
+RT_MKT_ANAJI,GPRTU_TACO,"MKT-ANAJI","Market Circle to Anaji Station",3

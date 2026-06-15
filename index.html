@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Takoradi Transit System Live Navigator & Admin Panel</title>
+    
+    <!-- MOBILE PWA CONFIGURATION CONNECTORS -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f39c12">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#2c3e50">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 340px; background: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 4px 0 10px rgba(0,0,0,0.2); z-index: 2000; }
+        #map { flex: 1; height: 100vh; }
+        h2 { margin-top: 0; color: #f39c12; font-size: 22px; display: flex; align-items: center; gap: 8px; }
+        .search-box { width: 100%; padding: 10px; border: none; border-radius: 5px; margin: 15px 0; box-sizing: border-box; font-size: 14px; background-color: #34495e; color: white; }
+        .search-box::placeholder { color: #b2bec3; }
+        .station-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .station-item { background: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; transition: 0.2s; border-left: 4px solid #d35400; display: block; }
+        .station-item:hover { background: #465866; transform: translateX(4px); }
+        .station-item strong { display: block; font-size: 14px; color: #ecf0f1; }
+        .station-item .meta-line { font-size: 12px; color: #bdc3c7; display: block; margin-top: 3px; }
+        .analytics-badge { font-size: 11px; color: #f1c40f; font-weight: bold; display: block; margin-top: 3px; }
+        .station-label { background: rgba(44, 62, 80, 0.95); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-weight: 600; font-size: 11px; white-space: nowrap; }
+        .station-icon { background-color: #d35400; color: white; border: 2px solid white; border-radius: 50%; text-align: center; line-height: 24px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .hub-icon { background-color: #c0392b !important; }
+        .user-heading-marker { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 24px solid #2980b9; filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.4)); transition: transform 0.1s linear; }
+        
+        /* Floating Interface Buttons */
+        .floating-btn { position: absolute; right: 20px; z-index: 1000; color: white; border: none; padding: 12px 18px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .compass-btn { bottom: 20px; background: #f39c12; }
+        .admin-btn { bottom: 75px; background: #c0392b; }
+
+        /* Admin Dashboard Modal Overlay */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
+        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 450px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: #2c3e50; }
+        .modal-box h3 { margin-top: 0; color: #c0392b; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
+        .fare-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .fare-row label { font-weight: 600; font-size: 14px; }
+        .fare-input { width: 90px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-weight: bold; text-align: center; }
+        .admin-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-action { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-save { background: #27ae60; color: white; }
+        .btn-close { background: #7f8c8d; color: white; }
+        .btn-export { background: #2980b9; color: white; width: 100%; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h2>🚀 Troski Interface</h2>
+        <p style="font-size: 13px; margin: 0; color: #b2bec3;">Your real-world position and structural paratransit analytics are monitored live.</p>
+        
+        <input type="text" id="search" class="search-box" placeholder="🔍 Search bus stations..." onkeyup="filterStations()">
+        
+        <ul id="list" class="station-list"></ul>
+    </div>
+
+    <div id="map"></div>
+    
+    <!-- Control Dashboard Entry Buttons -->
+    <button class="floating-btn admin-btn" onclick="openAdminModal()">🔒 Admin Panel</button>
+    <button class="floating-btn compass-btn" onclick="activateCompass()">🧭 Calibrate Compass</button>
+
+    <!-- Admin Overlay Box Structure Container Component -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔒 GPRTU Fare Administration Dashboard</h3>
+            <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 20px;">Modify active line operational tariffs below. Changes will immediately update map tooltips, arrays, and sidebar modules.</p>
+            
+            <div id="fareForm">
+                <!-- Fare Input rows generated dynamically via JavaScript -->
+            </div>
+
+            <div class="admin-actions">
+                <button class="btn-action btn-save" onclick="saveFares()">Apply Price Changes</button>
+                <button class="btn-action btn-close" onclick="closeAdminModal()">Cancel</button>
+            </div>
+            <button class="btn-action btn-export" onclick="exportGTFSFareAttributes()">📥 Export Updated fare_attributes.txt</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([4.9150, -1.7450], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let userMarker = null;
+        let userAccuracyCircle = null;
+        let firstLocationUpdate = true;
+        let currentHeading = 0;
+
+        let globalStops = [];
+        let globalNetworks = [
+            { id: "ST_KWES_TER", key: "RT_MKT_KWES", name: "Kwesimintsim", color: "#e67e22", points: [[4.8942, -1.7554], [4.8912, -1.8021]], fare: 7.00, routeId: "RT_MKT_KWES", fareId: "FR_KWES_FLAT" },
+            { id: "ST_SEK_TER", key: "RT_MKT_SEK", name: "Sekondi", color: "#2980b9", points: [[4.8942, -1.7554], [4.9344, -1.7061]], fare: 8.50, routeId: "RT_MKT_SEK", fareId: "FR_SEK_FLAT" },
+            { id: "ST_KOJO_TER", key: "RT_MKT_KOJO", name: "Kojokrom", color: "#8e44ad", points: [[4.8942, -1.7554], [4.9491, -1.7224]], fare: 9.50, routeId: "RT_MKT_KOJO", fareId: "FR_KOJO_FLAT" },
+            { id: "ST_EFFIA_TER", key: "RT_MKT_EFFIA", name: "Effiakuma", color: "#27ae60", points: [[4.8942, -1.7554], [4.9125, -1.7690]], fare: 6.50, routeId: "RT_MKT_EFFIA", fareId: "FR_EFFIA_FLAT" },
+            { id: "ST_ANAJI_TER", key: "RT_MKT_ANAJI", name: "Anaji", color: "#f1c40f", points: [[4.8942, -1.7554], [4.9210, -1.7845]], fare: 7.50, routeId: "RT_MKT_ANAJI", fareId: "FR_ANAJI_FLAT" }
+        ];
+        
+        let mapMarkersCache = {};
+        let routeLinesGroup = L.layerGroup().addTo(map);
+
+        function parseCSV(text) {
+            const lines = text.split('\n').map(line => line.replace('\r', '').trim()).filter(line => line.length > 0);
+            const headers = lines[0].split(',');
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header.trim()] = values[index] ? values[index].replace(/['"]+/g, '').trim() : null;
+                });
+                return obj;
+            });
+        }
+
+        const pathPrefix = window.location.pathname.includes('data/gtfs') ? './' : './data/gtfs/';
+
+        Promise.all([
+            fetch(`${pathPrefix}stops.txt`).then(res => res.text()),
+            fetch(`${pathPrefix}fare_attributes.txt`).then(res => res.text())
+        ])
+        .then(([stopsData, fareAttributesData]) => {
+            globalStops = parseCSV(stopsData);
+            const fareAttributes = parseCSV(fareAttributesData);
+
+            globalNetworks.forEach(net => {
+                const matchingAttribute = fareAttributes.find(attr => attr.fare_id === net.fareId);
+                if (matchingAttribute) {
+                    net.fare = parseFloat(matchingAttribute.price);
+                }
+            });
+
+            renderInterfaceElements();
+            setupLiveTracking();
+        });
+
+        function renderInterfaceElements() {
+            for (let key in mapMarkersCache) {
+                map.removeLayer(mapMarkersCache[key]);
+            }
+            mapMarkersCache = {};
+            routeLinesGroup.clearLayers();
+            
+            const listContainer = document.getElementById('list');
+            listContainer.innerHTML = "";
+
+            globalStops.forEach(stop => {
+                const lat = parseFloat(stop.stop_lat);
+                const lon = parseFloat(stop.stop_lon);
+
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    let fareString = "";
+                    let isHub = stop.stop_id === "ST_MKT_CTRL";
+                    
+                    if (!isHub) {
+                        const currentNetRecord = globalNetworks.find(n => n.id === stop.stop_id);
+                        if (currentNetRecord) {
+                            fareString = `${currentNetRecord.fare.toFixed(2)} GHS`;
+                        }
+                    } else {
+                        fareString = "Central Hub";
+                    }
+
+                    const markerIcon = L.divIcon({
+                        html: 'S', className: `station-icon ${isHub ? 'hub-icon' : ''}`, iconSize: [26, 26], iconAnchor: [13, 13]
+                    });
+
+                    const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
+                    const toolTipText = isHub ? stop.stop_name : `${stop.stop_name} (${fareString})`;
+                    marker.bindTooltip(toolTipText, { permanent: true, direction: 'top', className: 'station-label', offset: [0, -12] }).openTooltip();
+                    
+                    mapMarkersCache[stop.stop_id] = marker;
+
+                    const li = document.createElement('li');
+                    li.className = 'station-item';
+                    li.setAttribute('data-name', stop.stop_name.toLowerCase());
+                    li.innerHTML = `
+                        <strong>${stop.stop_name}</strong>
+                        <span class="meta-line">📌 Fare: ${fareString}</span>
+                        ${!isHub ? `<span class="analytics-badge" id="dist-${stop.stop_id}">Calculating network metrics...</span>` : ''}
+                    `;
+                    li.onclick = () => {
+                        map.setView([lat, lon], 15);
+                        marker.openTooltip();
+                    };
+                    listContainer.appendChild(li);
+                }
+            });
+
+            globalNetworks.forEach(net => {
+                const coordString = net.points.map(p => `${p[1]},${p[0]}`).join(';');
+                fetch(`https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.routes && data.routes.length > 0) {
+                            L.geoJSON(data.routes[0].geometry, { style: { color: net.color, weight: 5, opacity: 0.75 } }).addTo(routeLinesGroup);
+                            
+                            const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
+                            const farePerKm = (net.fare / distanceKm).toFixed(2);
+                            const distanceEl = document.getElementById(`dist-${net.id}`);
+                            if (distanceEl) {
+                                distanceEl.innerText = `📏 ${distanceKm} km (${farePerKm} GHS/km)`;
+                            }
+                        }
+                    });
+            });
+        }
+
+        function openAdminModal() {
+            const passwordAttempt = prompt("🔑 Access Key Required:\nPlease input the GPRTU Administration Terminal verification password:");
+            
+            // ADMIN GATEWAY VERIFICATION
+            if (passwordAttempt === "blacks22") {
+                const formContainer = document.getElementById('fareForm');
+                formContainer.innerHTML = "";
+
+                globalNetworks.forEach(net => {
+                    const row = document.createElement('div');
+                    row.className = 'fare-row';
+                    row.innerHTML = `
+                        <label>${net.name} Terminal:</label>
+                        <div>
+                            <input type="number" step="0.1" id="input-${net.id}" class="fare-input" value="${net.fare}">
+                            <span style="font-weight:bold; font-size:13px; color:#555;"> GHS</span>
+                        </div>
+                    `;
+                    formContainer.appendChild(row);
+                });
+
+                document.getElementById('adminModal').style.display = 'flex';
+            } else if (passwordAttempt !== null) {
+                alert("❌ Authentication Failed: Invalid GPRTU administrator password key.");
+            }
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').style.display = 'none';
+        }
+
+        function saveFares() {
+            globalNetworks.forEach(net => {
+                const inputElement = document.getElementById(`input-${net.id}`);
+                if (inputElement && !isNaN(parseFloat(inputElement.value))) {
+                    net.fare = parseFloat(inputElement.value);
+                }
+            });
+
+            renderInterfaceElements();
+            closeAdminModal();
+            alert("✅ Price changes applied successfully across all active routes!");
+        }
+
+        function exportGTFSFareAttributes() {
+            let csvContent = "fare_id,price,currency,payment_method,transfers\n";
+            globalNetworks.forEach(net => {
+                csvContent += `${net.fareId},${net.fare.toFixed(2)},GHS,0,0\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "fare_attributes.txt");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function setupLiveTracking() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.watchPosition(onLocationSuccess, onLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+        }
+
+        function onLocationSuccess(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+
+            const userIcon = L.divIcon({
+                html: `<div id="pointer-arrow" class="user-heading-marker" style="transform: rotate(${currentHeading}deg);"></div>`,
+                className: '', iconSize: [20, 24], iconAnchor: [10, 12]
+            });
+
+            if (!userMarker) {
+                userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map);
+                userMarker.bindTooltip("You are facing this way", { direction: 'top', className: 'station-label' });
+                userAccuracyCircle = L.circle([lat, lon], { radius: accuracy, color: '#2980b9', weight: 1, fillOpacity: 0.15 }).addTo(map);
+            } else {
+                userMarker.setLatLng([lat, lon]);
+                userAccuracyCircle.setLatLng([lat, lon]);
+                userAccuracyCircle.setRadius(accuracy);
+                updateDomHeading();
+            }
+
+            if (firstLocationUpdate) {
+                map.setView([lat, lon], 14);
+                firstLocationUpdate = false;
+            }
+        }
+
+        function onLocationError(error) { console.warn(`GPS error: ${error.message}`); }
+        function handleOrientation(event) {
+            let heading = event.webkitCompassHeading || (360 - event.alpha);
+            if (heading !== undefined && heading !== null) { currentHeading = Math.round(heading); updateDomHeading(); }
+        }
+        function updateDomHeading() { const arrow = document.getElementById('pointer-arrow'); if (arrow) { arrow.style.transform = `rotate(${currentHeading}deg)`; } }
+        
+        function activateCompass() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation, true); }).catch(console.error);
+            } else { window.addEventListener('deviceorientation', handleOrientation, true); }
+        }
+
+        function filterStations() {
+            const query = document.getElementById('search').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.station-item');
+            items.forEach(item => {
+                const name = item.getAttribute('data-name') || '';
+                item.style.display = name.includes(query) ? 'block' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

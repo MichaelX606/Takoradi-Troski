@@ -1,0 +1,6 @@
+fare_id,price,currency,payment_method,transfers
+FR_KWES_FLAT,7.00,GHS,0,0
+FR_SEK_FLAT,8.50,GHS,0,0
+FR_KOJO_FLAT,9.50,GHS,0,0
+FR_EFFIA_FLAT,6.50,GHS,0,0
+FR_ANAJI_FLAT,7.50,GHS,0,0

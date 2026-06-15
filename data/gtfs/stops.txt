@@ -1,0 +1,7 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type
+ST_MKT_CTRL,"Market Circle Main Terminal",4.8942,-1.7554,0
+ST_KWES_TER,"Kwesimintsim Main Station",4.8912,-1.8021,0
+ST_SEK_TER,"Sekondi Main Station",4.9344,-1.7061,0
+ST_KOJO_TER,"Kojokrom Junction Station",4.9491,-1.7224,0
+ST_EFFIA_TER,"Effiakuma No.9 Bus Station",4.9125,-1.7690,0
+ST_ANAJI_TER,"Anaji Choice Bus Station",4.9210,-1.7845,0
