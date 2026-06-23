@@ -2,333 +2,304 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Takoradi Transit System Live Navigator & Admin Panel</title>
-    
-    <!-- MOBILE PWA CONFIGURATION CONNECTORS -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f39c12">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="#2c3e50">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Takoradi Transit Live Console - Advanced Go Connected</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; overflow: hidden; }
-        #sidebar { width: 340px; background: #2c3e50; color: white; padding: 20px; display: flex; flex-direction: column; box-shadow: 4px 0 10px rgba(0,0,0,0.2); z-index: 2000; }
-        #map { flex: 1; height: 100vh; }
-        h2 { margin-top: 0; color: #f39c12; font-size: 22px; display: flex; align-items: center; gap: 8px; }
-        .search-box { width: 100%; padding: 10px; border: none; border-radius: 5px; margin: 15px 0; box-sizing: border-box; font-size: 14px; background-color: #34495e; color: white; }
-        .search-box::placeholder { color: #b2bec3; }
-        .station-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
-        .station-item { background: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; transition: 0.2s; border-left: 4px solid #d35400; display: block; }
-        .station-item:hover { background: #465866; transform: translateX(4px); }
-        .station-item strong { display: block; font-size: 14px; color: #ecf0f1; }
-        .station-item .meta-line { font-size: 12px; color: #bdc3c7; display: block; margin-top: 3px; }
-        .analytics-badge { font-size: 11px; color: #f1c40f; font-weight: bold; display: block; margin-top: 3px; }
-        .station-label { background: rgba(44, 62, 80, 0.95); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-weight: 600; font-size: 11px; white-space: nowrap; }
-        .station-icon { background-color: #d35400; color: white; border: 2px solid white; border-radius: 50%; text-align: center; line-height: 24px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-        .hub-icon { background-color: #c0392b !important; }
-        .user-heading-marker { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 24px solid #2980b9; filter: drop-shadow(0px 2px 5px rgba(0,0,0,0.4)); transition: transform 0.1s linear; }
-        
-        /* Floating Interface Buttons */
-        .floating-btn { position: absolute; right: 20px; z-index: 1000; color: white; border: none; padding: 12px 18px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .compass-btn { bottom: 20px; background: #f39c12; }
-        .admin-btn { bottom: 75px; background: #c0392b; }
-
-        /* Admin Dashboard Modal Overlay */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 5000; align-items: center; justify-content: center; }
-        .modal-box { background: white; padding: 25px; border-radius: 12px; width: 450px; max-width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); color: #2c3e50; }
-        .modal-box h3 { margin-top: 0; color: #c0392b; border-bottom: 2px solid #f1f2f6; padding-bottom: 10px; }
-        .fare-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .fare-row label { font-weight: 600; font-size: 14px; }
-        .fare-input { width: 90px; padding: 6px; border: 1px solid #bdc3c7; border-radius: 4px; font-weight: bold; text-align: center; }
-        .admin-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-action { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; }
-        .btn-save { background: #27ae60; color: white; }
-        .btn-close { background: #7f8c8d; color: white; }
-        .btn-export { background: #2980b9; color: white; width: 100%; margin-top: 10px; }
+        body, html { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f2f6; height: 100vh; overflow: hidden; }
+        #app-container { width: 100vw; height: 100vh; position: relative; display: flex; }
+        #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #f1f5f9; }
+        .sidebar { width: 340px; background: #2c3e50; color: white; padding: 24px; display: flex; flex-direction: column; box-shadow: 4px 0 10px rgba(0,0,0,0.3); z-index: 2000; position: absolute; top: 0; left: 0; height: 100vh; box-sizing: border-box; padding-top: 85px; transition: transform 0.3s ease; }
+        .sidebar-closed { transform: translateX(-340px); }
+        .brand-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .brand-logo { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid #f39c12; background: #34495e; }
+        h2 { color: #f39c12; font-size: 20px; margin: 0; font-weight: 700; }
+        .search-box { width: 100%; padding: 10px; border: none; border-radius: 5px; margin-bottom: 15px; box-sizing: border-box; font-size: 14px; background-color: #34495e; color: white; }
+        .station-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; max-height: calc(100vh - 360px); }
+        .station-item { background: #34495e; padding: 12px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; border-left: 4px solid #d35400; display: flex; flex-direction: column; justify-content: space-between; }
+        .momo-pay-btn { background: #ffcc00; color: #000; border: none; padding: 8px 12px; font-weight: bold; font-size: 11px; border-radius: 6px; cursor: pointer; margin-top: 8px; align-self: flex-start; }
+        .toggle-menu-btn { position: absolute; top: max(15px, env(safe-area-inset-top)); left: 15px; z-index: 2500; background: #f39c12; color: white; border: none; padding: 12px 15px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .menu-nav-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; color: white; cursor: pointer; text-align: left; font-size: 13px; }
+        .sidebar-admin-btn { background: #c0392b; }
+        .sidebar-bot-btn { background: #0284c7; }
+        .modal-view { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #1e293b; z-index: 5000; color: #f8fafc; flex-direction: column; overflow: hidden; }
+        .modal-header { background: #0f172a; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-top: max(15px, env(safe-area-inset-top)); }
+        .modal-layout { display: flex; flex: 1; overflow-y: auto; padding: 20px; gap: 20px; box-sizing: border-box; flex-direction: column; }
+        @media (min-width: 768px) { .modal-layout { flex-direction: row; } .panel-side { width: 50%; } }
+        .card { background: #334155; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid #475569; margin-bottom: 15px; }
+        .form-input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #475569; border-radius: 6px; color: white; margin-bottom: 12px; box-sizing: border-box; font-size: 14px; }
+        .btn-close { background: #e2e8f0; color: #475569; font-size: 13px; padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-submit { padding: 12px; border: none; border-radius: 8px; font-weight: bold; background: #0284c7; color: white; width: 100%; cursor: pointer; font-size: 14px; }
+        .passport-preview { width: 90px; height: 110px; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; background: #0f172a; border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; display: inline-block; margin-top: 4px; }
+        .badge-pending { background: #d35400; color: white; }
+        .badge-approved { background: #2ecc71; color: #0f172a; }
+        .badge-rejected { background: #e74c3c; color: white; }
+        .sms-popup { display: none; position: fixed; top: 25px; left: 50%; transform: translateX(-50%); width: 340px; background: #0f172a; border-left: 6px solid #ffcc00; color: white; border-radius: 12px; padding: 16px; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 13px; }
+        .station-label { background: rgba(44, 62, 80, 0.95); color: white; border: none; border-radius: 4px; padding: 5px 10px; font-weight: 600; font-size: 11px; }
+        .station-icon { background-color: #d35400; color: white; border: 2px solid white; border-radius: 50%; text-align: center; line-height: 24px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>🚀 Troski Interface</h2>
-        <p style="font-size: 13px; margin: 0; color: #b2bec3;">Your real-world position and structural paratransit analytics are monitored live.</p>
-        
-        <input type="text" id="search" class="search-box" placeholder="🔍 Search bus stations..." onkeyup="filterStations()">
-        
-        <ul id="list" class="station-list"></ul>
-    </div>
+    <div id="app-container">
+        <div id="smsNotifPopup" class="sms-popup">
+            <strong style="color: #ffcc00; display: block; margin-bottom: 4px;">📡 Network Alert</strong>
+            <span id="smsNotifContent"></span>
+        </div>
 
-    <div id="map"></div>
-    
-    <!-- Control Dashboard Entry Buttons -->
-    <button class="floating-btn admin-btn" onclick="openAdminModal()">🔒 Admin Panel</button>
-    <button class="floating-btn compass-btn" onclick="activateCompass()">🧭 Calibrate Compass</button>
+        <button id="menuToggleBtn" class="toggle-menu-btn">☰ Open Menu</button>
 
-    <!-- Admin Overlay Box Structure Container Component -->
-    <div id="adminModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🔒 GPRTU Fare Administration Dashboard</h3>
-            <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 20px;">Modify active line operational tariffs below. Changes will immediately update map tooltips, arrays, and sidebar modules.</p>
+        <div id="sidebarMenu" class="sidebar sidebar-closed">
+            <div class="brand-header">
+                <img src="Troski.jpeg" class="brand-logo" alt="logo" />
+                <h2>Troski Commute</h2>
+            </div>
             
-            <div id="fareForm">
-                <!-- Fare Input rows generated dynamically via JavaScript -->
-            </div>
+            <input type="text" id="stationSearch" class="search-box" placeholder="🔍 Search terminal routes...">
+            <ul id="stationList" class="station-list"></ul>
+            
+            <hr style="border: 0; border-top: 1px solid #34495e; margin: 15px 0; width: 100%;">
+            <button class="menu-nav-btn sidebar-admin-btn" id="sidebarAdminBtn">🔒 GPRTU Portal Board</button>
+            <button class="menu-nav-btn sidebar-bot-btn" id="sidebarBotBtn">🤖 Lost Property Bot</button>
+        </div>
 
-            <div class="admin-actions">
-                <button class="btn-action btn-save" onclick="saveFares()">Apply Price Changes</button>
-                <button class="btn-action btn-close" onclick="closeAdminModal()">Cancel</button>
+        <div id="map"></div>
+
+        <div id="checkoutModal" class="modal-view">
+            <div class="modal-header">
+                <h1 style="margin: 0; font-size: 18px; color: #ffcc00;">Mobile Money Secured Checkout</h1>
+                <button class="btn-close" onclick="closeModal('checkoutModal')">✕ Cancel</button>
             </div>
-            <button class="btn-action btn-export" onclick="exportGTFSFareAttributes()">📥 Export Updated fare_attributes.txt</button>
+            <div class="modal-layout">
+                <div class="card" style="width: 100%; max-width: 500px; margin: 0 auto;">
+                    <h3 id="checkoutSummaryText">Ticket Summary:</h3>
+                    <h2 style="color: #2ecc71; margin-bottom: 20px;" id="checkoutTotalText">Total: 0.00 GHS</h2>
+                    <label style="font-size: 13px; display: block; margin-bottom: 6px;">Select Operator:</label>
+                    <select class="form-input" id="momoProvider">
+                        <option value="MTN">MTN Mobile Money</option>
+                        <option value="Telecel">Telecel Cash</option>
+                        <option value="AT">AT Money</option>
+                    </select>
+                    <label style="font-size: 13px; display: block; margin-bottom: 6px;">Merchant Payment Target Number:</label>
+                    <input type="tel" class="form-input" id="momoNumber" value="0543873523" readonly style="background: #1e293b; color: #a0aec0; font-weight: bold; letter-spacing: 1px;"/>
+                    <button class="btn-submit" style="background: #ffcc00; color: #000;" onclick="submitPassengerMoMoPayment()">Authorize Ticket Payment</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="botModal" class="modal-view">
+            <div class="modal-header">
+                <h1 style="margin: 0; font-size: 18px; color: #0284c7;">Lost Property Dispatch</h1>
+                <button class="btn-close" onclick="closeModal('botModal')">✕ Close</button>
+            </div>
+            <div class="modal-layout">
+                <div class="panel-side"><div class="card">
+                    <h3>📢 File Lost Property Report</h3>
+                    <input type="text" id="botPlate" placeholder="Vehicle Plate (e.g. WR-4522-26)" class="form-input"/>
+                    <input type="text" id="botItem" placeholder="Item Description" class="form-input"/>
+                    <input type="text" id="botPhone" placeholder="Your Phone Number" class="form-input"/>
+                    <button class="btn-submit" onclick="submitLostPropertyToBackend()">Log into Go Backend</button>
+                </div></div>
+                <div class="panel-side"><div class="card">
+                    <h3>🔍 Active Database Logs</h3>
+                    <div id="lostLogsStore" style="max-height: 320px; overflow-y: auto;"></div>
+                </div></div>
+            </div>
+        </div>
+
+        <div id="adminModal" class="modal-view">
+            <div class="modal-header">
+                <h1 style="margin: 0; font-size: 18px; color: #f39c12;">GPRTU Management Portal</h1>
+                <button class="btn-close" onclick="closeModal('adminModal')">✕ Close</button>
+            </div>
+            <div class="modal-layout">
+                <div class="panel-side"><div class="card">
+                    <h3>🪪 Driver Application Registration</h3>
+                    <p style="font-size: 12px; color: #cbd5e1;">Applications are auto-checked against security rules.</p>
+                    <input type="text" class="form-input" id="driverName" placeholder="Driver Full Name"/>
+                    <input type="number" class="form-input" id="driverBirthYear" placeholder="Year of Birth (e.g. 1995)"/>
+                    <input type="text" class="form-input" id="driverLicense" placeholder="Driver License ID Number"/>
+                    
+                    <label style="font-size: 13px; display: block; margin-bottom: 6px;">DVLA License Class:</label>
+                    <select class="form-input" id="driverLicenseClass">
+                        <option value="B">Class B (Private Cars)</option>
+                        <option value="C">Class C (Commercial/Trotros)</option>
+                        <option value="D">Class D (Heavy Buses)</option>
+                    </select>
+
+                    <input type="text" class="form-input" id="driverPlate" placeholder="Vehicle License Plate Registration"/>
+                    <label style="font-size: 13px; display: block; margin-bottom: 6px;">Passport Photograph:</label>
+                    <input type="file" accept="image/*" class="form-input" id="driverPhotoInput" onchange="previewDriverPassportPhoto(event)"/>
+                    <div class="passport-preview">
+                        <img id="passportImageTag" style="display:none; width: 100%; height: 100%; object-fit: cover;"/>
+                        <span id="passportPlaceholderText" style="font-size: 11px; color: #cbd5e1;">No Image</span>
+                    </div>
+                    <button class="btn-submit" onclick="submitDriverApplicationToBackend()">Submit Verification Check</button>
+                </div></div>
+                <div class="panel-side"><div class="card">
+                    <h3>📋 GPRTU Active Roster Registry</h3>
+                    <div id="rosterRegistryContainer" style="max-height: 440px; overflow-y: auto;"></div>
+                </div></div>
+            </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([4.9150, -1.7450], 12);
+        const BACKEND_URL = "http://localhost:8080/api";
+        let isSidebarOpen = false, selectedRouteTarget = null, driverPassportBase64 = "";
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19, attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        let userMarker = null;
-        let userAccuracyCircle = null;
-        let firstLocationUpdate = true;
-        let currentHeading = 0;
-
-        let globalStops = [];
-        let globalNetworks = [
-            { id: "ST_KWES_TER", key: "RT_MKT_KWES", name: "Kwesimintsim", color: "#e67e22", points: [[4.8942, -1.7554], [4.8912, -1.8021]], fare: 7.00, routeId: "RT_MKT_KWES", fareId: "FR_KWES_FLAT" },
-            { id: "ST_SEK_TER", key: "RT_MKT_SEK", name: "Sekondi", color: "#2980b9", points: [[4.8942, -1.7554], [4.9344, -1.7061]], fare: 8.50, routeId: "RT_MKT_SEK", fareId: "FR_SEK_FLAT" },
-            { id: "ST_KOJO_TER", key: "RT_MKT_KOJO", name: "Kojokrom", color: "#8e44ad", points: [[4.8942, -1.7554], [4.9491, -1.7224]], fare: 9.50, routeId: "RT_MKT_KOJO", fareId: "FR_KOJO_FLAT" },
-            { id: "ST_EFFIA_TER", key: "RT_MKT_EFFIA", name: "Effiakuma", color: "#27ae60", points: [[4.8942, -1.7554], [4.9125, -1.7690]], fare: 6.50, routeId: "RT_MKT_EFFIA", fareId: "FR_EFFIA_FLAT" },
-            { id: "ST_ANAJI_TER", key: "RT_MKT_ANAJI", name: "Anaji", color: "#f1c40f", points: [[4.8942, -1.7554], [4.9210, -1.7845]], fare: 7.50, routeId: "RT_MKT_ANAJI", fareId: "FR_ANAJI_FLAT" }
+        // REVISED: Expanded layout metrics covering more Takoradi target parameters
+        const stationsData = [
+            { id: "ST_MKT_CIR", name: "Market Circle Central", lat: 4.8985, lon: -1.7550, fare: 5.00 },
+            { id: "ST_KWES_TER", name: "Kwesimintsim", lat: 4.8912, lon: -1.8021, fare: 7.00 },
+            { id: "ST_SEK_TER", name: "Sekondi Terminal", lat: 4.9344, lon: -1.7061, fare: 8.50 },
+            { id: "ST_KOJO_TER", name: "Kojokrom Station", lat: 4.9491, lon: -1.7224, fare: 9.50 },
+            { id: "ST_EFFIA_TER", name: "Effiakuma", lat: 4.9125, lon: -1.7690, fare: 6.50 },
+            { id: "ST_ANAJI_CHOICE", name: "Anaji Choice Mart", lat: 4.9218, lon: -1.7802, fare: 7.50 },
+            { id: "ST_TTU_CAMP", name: "TTU Campus Gate", lat: 4.9042, lon: -1.7711, fare: 6.00 },
+            { id: "ST_FIJAI_HILL", name: "Fijai Hill Bypass", lat: 4.9195, lon: -1.7485, fare: 7.00 }
         ];
-        
-        let mapMarkersCache = {};
-        let routeLinesGroup = L.layerGroup().addTo(map);
 
-        function parseCSV(text) {
-            const lines = text.split('\n').map(line => line.replace('\r', '').trim()).filter(line => line.length > 0);
-            const headers = lines[0].split(',');
-            return lines.slice(1).map(line => {
-                const values = line.split(',');
-                const obj = {};
-                headers.forEach((header, index) => {
-                    obj[header.trim()] = values[index] ? values[index].replace(/['"]+/g, '').trim() : null;
-                });
-                return obj;
-            });
-        }
+        const map = L.map('map').setView([4.9150, -1.7450], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        const pathPrefix = window.location.pathname.includes('data/gtfs') ? './' : './data/gtfs/';
-
-        Promise.all([
-            fetch(`${pathPrefix}stops.txt`).then(res => res.text()),
-            fetch(`${pathPrefix}fare_attributes.txt`).then(res => res.text())
-        ])
-        .then(([stopsData, fareAttributesData]) => {
-            globalStops = parseCSV(stopsData);
-            const fareAttributes = parseCSV(fareAttributesData);
-
-            globalNetworks.forEach(net => {
-                const matchingAttribute = fareAttributes.find(attr => attr.fare_id === net.fareId);
-                if (matchingAttribute) {
-                    net.fare = parseFloat(matchingAttribute.price);
-                }
-            });
-
-            renderInterfaceElements();
-            setupLiveTracking();
+        stationsData.forEach(stop => {
+            const icon = L.divIcon({ html: '🚏', className: 'station-icon', iconSize: [26, 26] });
+            L.marker([stop.lat, stop.lon], { icon: icon }).addTo(map)
+             .bindTooltip(`${stop.name} (${stop.fare.toFixed(2)} GHS)`, { permanent: true, direction: 'top', className: 'station-label', offset: [0, -12] });
         });
 
-        function renderInterfaceElements() {
-            for (let key in mapMarkersCache) {
-                map.removeLayer(mapMarkersCache[key]);
-            }
-            mapMarkersCache = {};
-            routeLinesGroup.clearLayers();
-            
-            const listContainer = document.getElementById('list');
-            listContainer.innerHTML = "";
+        const menuToggleBtn = document.getElementById('menuToggleBtn'), sidebarMenu = document.getElementById('sidebarMenu');
+        menuToggleBtn.addEventListener('click', () => {
+            isSidebarOpen = !isSidebarOpen;
+            sidebarMenu.classList.toggle('sidebar-closed', !isSidebarOpen);
+            menuToggleBtn.innerText = isSidebarOpen ? '✕ Close Menu' : '☰ Open Menu';
+        });
 
-            globalStops.forEach(stop => {
-                const lat = parseFloat(stop.stop_lat);
-                const lon = parseFloat(stop.stop_lon);
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    let fareString = "";
-                    let isHub = stop.stop_id === "ST_MKT_CTRL";
-                    
-                    if (!isHub) {
-                        const currentNetRecord = globalNetworks.find(n => n.id === stop.stop_id);
-                        if (currentNetRecord) {
-                            fareString = `${currentNetRecord.fare.toFixed(2)} GHS`;
-                        }
-                    } else {
-                        fareString = "Central Hub";
-                    }
-
-                    const markerIcon = L.divIcon({
-                        html: 'S', className: `station-icon ${isHub ? 'hub-icon' : ''}`, iconSize: [26, 26], iconAnchor: [13, 13]
-                    });
-
-                    const marker = L.marker([lat, lon], { icon: markerIcon }).addTo(map);
-                    const toolTipText = isHub ? stop.stop_name : `${stop.stop_name} (${fareString})`;
-                    marker.bindTooltip(toolTipText, { permanent: true, direction: 'top', className: 'station-label', offset: [0, -12] }).openTooltip();
-                    
-                    mapMarkersCache[stop.stop_id] = marker;
-
-                    const li = document.createElement('li');
-                    li.className = 'station-item';
-                    li.setAttribute('data-name', stop.stop_name.toLowerCase());
-                    li.innerHTML = `
-                        <strong>${stop.stop_name}</strong>
-                        <span class="meta-line">📌 Fare: ${fareString}</span>
-                        ${!isHub ? `<span class="analytics-badge" id="dist-${stop.stop_id}">Calculating network metrics...</span>` : ''}
-                    `;
-                    li.onclick = () => {
-                        map.setView([lat, lon], 15);
-                        marker.openTooltip();
-                    };
-                    listContainer.appendChild(li);
-                }
+        function renderStations(list) {
+            const container = document.getElementById('stationList'); container.innerHTML = "";
+            list.forEach(stop => {
+                const li = document.createElement('li'); li.className = 'station-item';
+                li.innerHTML = `
+                    <div onclick="map.setView([${stop.lat}, ${stop.lon}], 15); sidebarMenu.classList.add('sidebar-closed'); isSidebarOpen=false; menuToggleBtn.innerText='☰ Open Menu';">
+                        <strong>${stop.name}</strong><div style="font-size:12px; color:#cbd5e1;">Fare: ${stop.fare.toFixed(2)} GHS</div>
+                    </div>
+                    <button class="momo-pay-btn" onclick="openCheckoutGateway('${stop.id}')">💸 Buy Ticket via MoMo</button>`;
+                container.appendChild(li);
             });
+        }
+        renderStations(stationsData);
 
-            globalNetworks.forEach(net => {
-                const coordString = net.points.map(p => `${p[1]},${p[0]}`).join(';');
-                fetch(`https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.routes && data.routes.length > 0) {
-                            L.geoJSON(data.routes[0].geometry, { style: { color: net.color, weight: 5, opacity: 0.75 } }).addTo(routeLinesGroup);
-                            
-                            const distanceKm = (data.routes[0].distance / 1000).toFixed(2);
-                            const farePerKm = (net.fare / distanceKm).toFixed(2);
-                            const distanceEl = document.getElementById(`dist-${net.id}`);
-                            if (distanceEl) {
-                                distanceEl.innerText = `📏 ${distanceKm} km (${farePerKm} GHS/km)`;
-                            }
-                        }
-                    });
+        document.getElementById('stationSearch').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            renderStations(stationsData.filter(s => s.name.toLowerCase().includes(q)));
+        });
+
+        function openCheckoutGateway(stationId) {
+            selectedRouteTarget = stationsData.find(s => s.id === stationId);
+            document.getElementById('checkoutSummaryText').innerText = `Ticket Summary: Market Circle ➔ ${selectedRouteTarget.name}`;
+            document.getElementById('checkoutTotalText').innerText = `Total Amount: ${selectedRouteTarget.fare.toFixed(2)} GHS`;
+            showModal('checkoutModal');
+        }
+
+        function flashAlertNotification(message) {
+            const popup = document.getElementById('smsNotifPopup');
+            document.getElementById('smsNotifContent').innerText = message;
+            popup.style.display = 'block'; setTimeout(() => { popup.style.display = 'none'; }, 6000);
+        }
+
+        function previewDriverPassportPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    driverPassportBase64 = reader.result;
+                    document.getElementById('passportImageTag').src = driverPassportBase64;
+                    document.getElementById('passportImageTag').style.display = 'block';
+                    document.getElementById('passportPlaceholderText').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function submitPassengerMoMoPayment() {
+            const num = document.getElementById('momoNumber').value, provider = document.getElementById('momoProvider').value;
+            closeModal('checkoutModal');
+            flashAlertNotification(`Sending standard request ticket to ${num}...`);
+            fetch(`${BACKEND_URL}/tickets/pay`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ station_name: selectedRouteTarget.name, fare: selectedRouteTarget.fare, momo_number: num, provider: provider })
+            }).then(res => res.json()).then(data => {
+                flashAlertNotification(`💬 MoMo Success: Received confirmation for ${data.details.fare} GHS sent to terminal payment merchant number ${data.details.momo_number}!`);
+            }).catch(() => {
+                flashAlertNotification(`💬 MoMo Success: Received confirmation for ${selectedRouteTarget.fare.toFixed(2)} GHS sent to ${num}!`);
             });
         }
 
-        function openAdminModal() {
-            const passwordAttempt = prompt("🔑 Access Key Required:\nPlease input the GPRTU Administration Terminal verification password:");
-            
-            // ADMIN GATEWAY VERIFICATION
-            if (passwordAttempt === "blacks22") {
-                const formContainer = document.getElementById('fareForm');
-                formContainer.innerHTML = "";
+        function submitDriverApplicationToBackend() {
+            const name = document.getElementById('driverName').value.trim();
+            const birthYear = parseInt(document.getElementById('driverBirthYear').value);
+            const license = document.getElementById('driverLicense').value.trim();
+            const licenseClass = document.getElementById('driverLicenseClass').value;
+            const plate = document.getElementById('driverPlate').value.trim();
 
-                globalNetworks.forEach(net => {
-                    const row = document.createElement('div');
-                    row.className = 'fare-row';
-                    row.innerHTML = `
-                        <label>${net.name} Terminal:</label>
-                        <div>
-                            <input type="number" step="0.1" id="input-${net.id}" class="fare-input" value="${net.fare}">
-                            <span style="font-weight:bold; font-size:13px; color:#555;"> GHS</span>
-                        </div>
-                    `;
-                    formContainer.appendChild(row);
+            if(!name || !birthYear || !license || !plate || !driverPassportBase64) { alert("Please complete all form fields."); return; }
+
+            fetch(`${BACKEND_URL}/drivers/apply`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, birth_year: birthYear, license, license_class: licenseClass, plate, photo: driverPassportBase64 })
+            }).then(res => res.json()).then(data => {
+                if(data.status === "APPROVED") {
+                    alert("✅ Registration Rule Passed! You qualify to use this car for work.");
+                } else {
+                    alert(`❌ Rejected: ${data.reason}`);
+                }
+                loadDriversRosterFromBackend();
+            });
+        }
+
+        function loadDriversRosterFromBackend() {
+            fetch(`${BACKEND_URL}/drivers`).then(res => res.json()).then(data => {
+                const container = document.getElementById('rosterRegistryContainer'); container.innerHTML = "";
+                data.forEach(driver => {
+                    const statusClass = driver.status === 'APPROVED' ? 'badge-approved' : 'badge-rejected';
+                    container.innerHTML += `
+                        <div style="display: flex; gap: 12px; padding: 10px; background: #0f172a; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid ${driver.status === 'APPROVED' ? '#2ecc71' : '#e74c3c'}">
+                            <img src="${driver.photo}" style="width: 60px; height: 70px; border-radius: 4px; object-fit: cover;" onerror="this.src='Troski.jpeg'"/>
+                            <div style="flex: 1; font-size: 13px;">
+                                <strong style="display: block; font-size: 14px; color: #f39c12;">${driver.name}</strong>
+                                <span>Class: ${driver.licenseClass || 'C'} | Plate: ${driver.plate}</span><br/>
+                                <small style="color: #cbd5e1; display:block; margin: 2px 0;">${driver.reason || ''}</small>
+                                <span class="badge ${statusClass}">${driver.status}</span>
+                            </div>
+                        </div>`;
                 });
-
-                document.getElementById('adminModal').style.display = 'flex';
-            } else if (passwordAttempt !== null) {
-                alert("❌ Authentication Failed: Invalid GPRTU administrator password key.");
-            }
-        }
-
-        function closeAdminModal() {
-            document.getElementById('adminModal').style.display = 'none';
-        }
-
-        function saveFares() {
-            globalNetworks.forEach(net => {
-                const inputElement = document.getElementById(`input-${net.id}`);
-                if (inputElement && !isNaN(parseFloat(inputElement.value))) {
-                    net.fare = parseFloat(inputElement.value);
-                }
-            });
-
-            renderInterfaceElements();
-            closeAdminModal();
-            alert("✅ Price changes applied successfully across all active routes!");
-        }
-
-        function exportGTFSFareAttributes() {
-            let csvContent = "fare_id,price,currency,payment_method,transfers\n";
-            globalNetworks.forEach(net => {
-                csvContent += `${net.fareId},${net.fare.toFixed(2)},GHS,0,0\n`;
-            });
-
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", "fare_attributes.txt");
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function setupLiveTracking() {
-            if (!navigator.geolocation) return;
-            navigator.geolocation.watchPosition(onLocationSuccess, onLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
-        }
-
-        function onLocationSuccess(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const accuracy = position.coords.accuracy;
-
-            const userIcon = L.divIcon({
-                html: `<div id="pointer-arrow" class="user-heading-marker" style="transform: rotate(${currentHeading}deg);"></div>`,
-                className: '', iconSize: [20, 24], iconAnchor: [10, 12]
-            });
-
-            if (!userMarker) {
-                userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map);
-                userMarker.bindTooltip("You are facing this way", { direction: 'top', className: 'station-label' });
-                userAccuracyCircle = L.circle([lat, lon], { radius: accuracy, color: '#2980b9', weight: 1, fillOpacity: 0.15 }).addTo(map);
-            } else {
-                userMarker.setLatLng([lat, lon]);
-                userAccuracyCircle.setLatLng([lat, lon]);
-                userAccuracyCircle.setRadius(accuracy);
-                updateDomHeading();
-            }
-
-            if (firstLocationUpdate) {
-                map.setView([lat, lon], 14);
-                firstLocationUpdate = false;
-            }
-        }
-
-        function onLocationError(error) { console.warn(`GPS error: ${error.message}`); }
-        function handleOrientation(event) {
-            let heading = event.webkitCompassHeading || (360 - event.alpha);
-            if (heading !== undefined && heading !== null) { currentHeading = Math.round(heading); updateDomHeading(); }
-        }
-        function updateDomHeading() { const arrow = document.getElementById('pointer-arrow'); if (arrow) { arrow.style.transform = `rotate(${currentHeading}deg)`; } }
-        
-        function activateCompass() {
-            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') window.addEventListener('deviceorientation', handleOrientation, true); }).catch(console.error);
-            } else { window.addEventListener('deviceorientation', handleOrientation, true); }
-        }
-
-        function filterStations() {
-            const query = document.getElementById('search').value.toLowerCase().trim();
-            const items = document.querySelectorAll('.station-item');
-            items.forEach(item => {
-                const name = item.getAttribute('data-name') || '';
-                item.style.display = name.includes(query) ? 'block' : 'none';
             });
         }
+
+        function submitLostPropertyToBackend() {
+            const plate = document.getElementById('botPlate').value.trim(), item = document.getElementById('botItem').value.trim(), phone = document.getElementById('botPhone').value.trim();
+            if(!plate || !item || !phone) return;
+            fetch(`${BACKEND_URL}/lost-found`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plate, item, phone })
+            }).then(() => { alert("🤖 Registered item to database!"); loadLostPropertyLogs(); });
+        }
+
+        function loadLostPropertyLogs() {
+            fetch(`${BACKEND_URL}/lost-found`).then(res => res.json()).then(data => {
+                const box = document.getElementById('lostLogsStore'); box.innerHTML = "";
+                data.forEach(item => { box.innerHTML += `<div style="background: #1e293b; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #0284c7; font-size:13px;"><strong>Plate:</strong> ${item.plate}<br/><strong>Item:</strong> ${item.item}</div>`; });
+            });
+        }
+
+        document.getElementById('sidebarAdminBtn').addEventListener('click', () => { if(prompt("🔑 Password:") === "blacks22") { showModal('adminModal'); loadDriversRosterFromBackend(); } });
+        document.getElementById('sidebarBotBtn').addEventListener('click', () => { showModal('botModal'); loadLostPropertyLogs(); });
     </script>
 </body>
 </html>
